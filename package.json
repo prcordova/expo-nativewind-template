@@ -1,7 +1,7 @@
 {
-  "name": "expo-template-nativewind",
+  "name": "melter-app",
   "version": "1.0.0",
-  "description": "Template Expo com NativeWind pré-configurado",
+  "description": "Aplicativo oficial Melter - Conecte-se e compartilhe momentos",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
@@ -10,17 +10,40 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~53.0.0",
+    "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-picker/picker": "2.11.1",
+    "@react-navigation/bottom-tabs": "^7.9.0",
+    "@react-navigation/native": "^7.1.26",
+    "@react-navigation/native-stack": "^7.9.0",
+    "axios": "^1.13.2",
+    "date-fns": "^4.1.0",
+    "expo": "~54.0.0",
+    "expo-av": "~15.0.1",
+    "expo-camera": "~17.0.10",
+    "expo-constants": "~18.0.12",
+    "expo-image-picker": "~17.0.10",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-media-library": "~18.2.1",
+    "expo-notifications": "~0.32.15",
     "expo-status-bar": "~2.2.3",
+    "nativewind": "^4.2.1",
     "react": "19.0.0",
     "react-native": "0.79.5",
-    "react-native-reanimated": "~3.17.4",
-    "react-native-safe-area-context": "5.4.0"
+    "react-native-css-interop": "^0.2.1",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-reanimated": "~3.16.1",
+    "react-native-safe-area-context": "^5.6.2",
+    "react-native-screens": "~4.16.0",
+    "react-native-toast-message": "^2.3.3",
+    "react-native-worklets": "^0.7.1",
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@types/react": "^19.1.12",
     "@types/react-native": "^0.73.0",
+    "babel-preset-expo": "^11.0.0",
     "typescript": "^5.9.2"
   },
   "private": true

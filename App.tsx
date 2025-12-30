@@ -1,31 +1,81 @@
+import "react-native-css-interop/jsx-runtime";
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { NotificationProvider } from './src/contexts/NotificationContext';
+import { LoginScreen } from './src/screens/LoginScreen';
+import { TabNavigator } from './src/navigation/TabNavigator';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { usePermissions } from './src/hooks/usePermissions';
+import { CustomToast } from './src/components/CustomToast';
+import { usePushNotifications } from './src/hooks/usePushNotifications';
+
+const Stack = createNativeStackNavigator();
+
+function Navigation() {
+  const { user, loading } = useAuth();
+  const permissions = usePermissions();
+  usePushNotifications(); // Registrar push notifications
+
+  // Mostrar loading enquanto carrega auth ou permissões
+  if (loading || permissions.loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator 
+          size="large" 
+          color="#d946ef"
+          animating={true}
+        />
+      </View>
+    );
+  }
+
+         return (
+           <Stack.Navigator>
+             {user ? (
+               <Stack.Screen 
+                 name="Main" 
+                 component={TabNavigator}
+                 options={{ headerShown: false }}
+               />
+             ) : (
+               <Stack.Screen 
+                 name="Login" 
+                 component={LoginScreen}
+                 options={{ headerShown: false }}
+               />
+             )}
+           </Stack.Navigator>
+         );
+}
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        Template Expo + TypeScript
-      </Text>
-      <StatusBar style="auto" />
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <NavigationContainer>
+              <Navigation />
+              <StatusBar style="auto" />
+              <CustomToast />
+            </NavigationContainer>
+          </NotificationProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  
 });

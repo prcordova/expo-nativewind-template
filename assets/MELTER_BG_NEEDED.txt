@@ -1,0 +1,17 @@
+ATENÇÃO: Adicione a imagem de fundo do Melter aqui!
+
+Arquivo necessário: melter-bg.png
+
+Esta imagem deve ser o mesmo background pattern usado no Melter web.
+
+Coloque o arquivo: melter-app/assets/melter-bg.png
+
+Formato sugerido: PNG com transparência
+Resolução recomendada: 1920x1080 ou similar
+
+Este background é usado nas seguintes telas:
+- MessagesScreen (lista de conversas)
+- ChatScreen (tela de chat individual)
+
+Se não tiver a imagem, você pode usar uma imagem sólida ou padrão temporariamente.
+

@@ -1,0 +1,365 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  TextInput,
+  Switch,
+} from 'react-native';
+import { Header } from '../components/Header';
+import { ShopCard } from '../components/ShopCard';
+import { shopsApi } from '../services/api';
+import { COLORS } from '../theme/colors';
+import { Picker } from '@react-native-picker/picker';
+import { useNavigation } from '@react-navigation/native';
+import { showToast } from '../components/CustomToast';
+
+interface Product {
+  _id: string;
+  title: string;
+  description: string;
+  price: number;
+  type: 'DIGITAL_PRODUCT' | 'COURSE' | 'SERVICE' | 'PHYSICAL_PRODUCT';
+  imageUrl?: string;
+  sellerId: {
+    _id: string;
+    username: string;
+    avatar?: string;
+  };
+  categoryId?: {
+    _id: string;
+    name: string;
+    emoji?: string;
+  };
+  salesCount?: number;
+  isActive?: boolean;
+  isAdultContent?: boolean;
+}
+
+type SortByType = 'createdAt' | 'price' | 'salesCount';
+type SortOrderType = 'asc' | 'desc';
+
+export function ShopsSearchScreen() {
+  const navigation = useNavigation<any>();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortByType>('createdAt');
+  const [sortOrder, setSortOrder] = useState<SortOrderType>('desc');
+  const [showAdultContent, setShowAdultContent] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    fetchProducts(1);
+  }, [selectedCategory, sortBy, sortOrder, showAdultContent]);
+
+  useEffect(() => {
+    // Debounce na busca
+    const timer = setTimeout(() => {
+      fetchProducts(1);
+    }, searchQuery ? 500 : 0);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchProducts = async (pageNum = 1) => {
+    try {
+      if (pageNum === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await shopsApi.getProducts({
+        page: pageNum,
+        limit: 20,
+        categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
+        search: searchQuery.trim(),
+        sortBy,
+        sortOrder,
+        showAdultContent,
+      });
+
+      if (response.success) {
+        const newProducts = response.data || [];
+
+        if (pageNum === 1) {
+          setProducts(newProducts);
+        } else {
+          // Evitar duplicatas
+          setProducts((prev) => {
+            const existingIds = new Set(prev.map((p) => p._id));
+            const uniqueNewProducts = newProducts.filter(
+              (p: Product) => !existingIds.has(p._id)
+            );
+            return [...prev, ...uniqueNewProducts];
+          });
+        }
+
+        setHasMore(newProducts.length >= 20);
+        setPage(pageNum);
+      }
+    } catch (error) {
+      console.error('[ShopsSearchScreen] Erro ao buscar produtos:', error);
+      showToast.error('Erro', 'Não foi possível carregar os produtos');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchProducts(page + 1);
+    }
+  };
+
+  const handleProductPress = (product: Product) => {
+    // TODO: Navegar para detalhes do produto
+    showToast.info('Produto', `Ver detalhes de ${product.title}`);
+  };
+
+  const renderItem = ({ item }: { item: Product }) => (
+    <ShopCard product={item} onPress={() => handleProductPress(item)} />
+  );
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footer}>
+        <ActivityIndicator
+          size="small"
+          color={COLORS.secondary.main}
+          animating={true}
+        />
+      </View>
+    );
+  };
+
+  const renderEmpty = () => {
+    if (loading) return null;
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyIcon}>🛍️</Text>
+        <Text style={styles.emptyText}>
+          {searchQuery ? 'Nenhum produto encontrado' : 'Nenhum produto disponível'}
+        </Text>
+        <Text style={styles.emptySubtext}>
+          {searchQuery
+            ? 'Tente buscar por outro termo'
+            : 'Comece a buscar por produtos'}
+        </Text>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <Header 
+        onLogoPress={() => {
+          const parent = navigation.getParent();
+          if (parent) {
+            parent.navigate('FeedTab' as never);
+          } else {
+            navigation.navigate('FeedTab' as never);
+          }
+        }}
+      />
+
+      <View style={styles.content}>
+        {/* Título */}
+        <Text style={styles.title}>Buscar Lojas</Text>
+
+        {/* Barra de Busca */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar produtos..."
+            placeholderTextColor={COLORS.text.tertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
+        {/* Filtros */}
+        <View style={styles.filtersSection}>
+          {/* Ordenação */}
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Ordenar por:</Text>
+            <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={sortBy}
+              onValueChange={(value: SortByType) => setSortBy(value)}
+              style={styles.picker}
+              dropdownIconColor={COLORS.text.secondary}
+            >
+                <Picker.Item label="Mais Recentes" value="createdAt" />
+                <Picker.Item label="Preço" value="price" />
+                <Picker.Item label="Mais Vendidos" value="salesCount" />
+              </Picker>
+            </View>
+          </View>
+
+          {/* Ordem */}
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Ordem:</Text>
+            <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={sortOrder}
+              onValueChange={(value: SortOrderType) => setSortOrder(value)}
+              style={styles.picker}
+              dropdownIconColor={COLORS.text.secondary}
+            >
+                <Picker.Item label="Decrescente" value="desc" />
+                <Picker.Item label="Crescente" value="asc" />
+              </Picker>
+            </View>
+          </View>
+
+          {/* Toggle +18 */}
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Mostrar conteúdo +18</Text>
+            <Switch
+              value={showAdultContent}
+              onValueChange={setShowAdultContent}
+              trackColor={{ false: COLORS.border.medium, true: COLORS.secondary.main }}
+              thumbColor="#ffffff"
+            />
+          </View>
+        </View>
+
+        {/* Lista de Produtos */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator
+              size="large"
+              color={COLORS.secondary.main}
+              animating={true}
+            />
+            <Text style={styles.loadingText}>Carregando produtos...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={products}
+            renderItem={renderItem}
+            keyExtractor={(item) => item._id}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={renderEmpty}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background.default,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  searchContainer: {
+    marginBottom: 12,
+  },
+  searchInput: {
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: COLORS.text.primary,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+  },
+  filtersSection: {
+    marginBottom: 16,
+    gap: 12,
+  },
+  filterRow: {
+    gap: 8,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  pickerWrapper: {
+    backgroundColor: COLORS.background.paper,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    overflow: 'hidden',
+  },
+  picker: {
+    color: COLORS.text.primary,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  listContent: {
+    paddingBottom: 16,
+  },
+  footer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  empty: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+});
+
